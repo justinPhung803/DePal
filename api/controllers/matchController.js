@@ -1,10 +1,11 @@
 import User from "../models/User.js";
+import { getConnectedUsers, getIO } from "../socket/socket.server.js";
 
 export const swipeRight = async (req, res) => {
     try {
-        const {likeUserId} = req.params;
+        const {likedUserId} = req.params;
         const currentUser = await User.findById(req.user.id);
-        const likedUser = await User.findById(likeUserId);
+        const likedUser = await User.findById(likedUserId);
 
         if(!likedUser) {
             return res.status(400).json({
@@ -13,11 +14,11 @@ export const swipeRight = async (req, res) => {
             });
         }
 
-        if(!currentUser.likes.includes(likeUserId)){
-            currentUser.likes.push(likeUserId);
+        if(!currentUser.likes.includes(likedUserId)){
+            currentUser.likes.push(likedUserId);
             await currentUser.save();
 
-            if(likeUser.likes.includes(currentUser.id)){
+            if(likedUser.likes.includes(currentUser.id)){
                 currentUser.matches.push(likedUser.id);
                 likedUser.matches.push(currentUser.id);
 
@@ -25,6 +26,26 @@ export const swipeRight = async (req, res) => {
                     await currentUser.save(),
                     await likedUser.save(),
                 ]);
+
+                const connectedUsers=getConnectedUsers();
+                const io = getIO();
+                const likedUserSocketId=connectedUsers.get(likedUserId);
+                if(likedUserSocketId) {
+                    io.to(likedUserSocketId).emit("newMatch", {
+                        _id: currentUser._id,
+                        name: currentUser.name,
+                        image: currentUser.image,
+                    })
+                }
+
+                const currentSocketId = connectedUsers.get(currentUser._id.toString());
+                if(currentSocketId) {
+                    io.to(currentSocketId).emit("newMatch", {
+                        _id: likedUser._id,
+                        name: likedUser.name,
+                        image: likedUser.image,
+                    });
+                }
             };
         };
 
