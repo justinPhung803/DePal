@@ -59,6 +59,14 @@ const Header = () => {
                                         <User className='mr-2' size={16} />
                                         Profile
                                     </Link>
+                                    <Link 
+                                    to='/event'
+                                    className='px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center'
+                                    onClick={() => setDropDownOpen(false)}
+                                    >
+                                        <User className='mr-2' size={16} />
+                                        Event
+                                    </Link>
                                     <button
                                     onClick={logout}
                                     className='w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center'
@@ -109,6 +117,13 @@ const Header = () => {
                                 onClick={() => setMobileMenuOpen(false)}
                             >
                                 Profile
+                            </Link>
+                            <Link
+                                to='/event'
+                                className='block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-yellow-700'
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                Event
                             </Link>
                             <button
                                 onClick={() => {

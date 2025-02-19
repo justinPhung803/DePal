@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useAuthStore } from '../store/useAuthStore.js';
+import { EyeIcon, EyeOffIcon } from 'lucide-react';
 
 const SignUpForm = () => {
     const [name, setName] = useState("");
@@ -8,6 +9,7 @@ const SignUpForm = () => {
     const [gender, setGender] = useState("");
     const [age, setAge] = useState("");
     const [genderPreference, setGenderPreference] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     const {signup, loading} = useAuthStore()
     
@@ -58,19 +60,27 @@ const SignUpForm = () => {
             <label htmlFor='password' className='block text-sm font-medium text-gray-700'>
                 Password
             </label>
-            <div className='mt-1'>
+            <div className='mt-1 relative'>
                 <input
                     id='password'
                     name='password'
-                    type='password'
+                    type={showPassword ? 'text' : 'password'}
                     autoComplete='new-password'
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm'
+                    className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm pr-10'
                 />
+                <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className='absolute inset-y-0 right-2 flex items-center px-2 text-gray-500 hover:text-gray-700 focus:outline-none'
+                >
+                    {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+                </button>
             </div>
         </div>
+
 
         <div>
             <label htmlFor='age' className='block text-sm font-medium text-gray-700'>
@@ -134,7 +144,7 @@ const SignUpForm = () => {
                         value='male'
                         checked={genderPreference === "male"}
                         onChange={(e) => setGenderPreference(e.target.value)}
-                        className='h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300'
+                        className='h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300'
                     />
                     <label htmlFor='prefer-male' className='ml-2 block text-sm text-gray-900'>
                         Male
@@ -148,7 +158,7 @@ const SignUpForm = () => {
                         value='female'
                         checked={genderPreference === "female"}
                         onChange={(e) => setGenderPreference(e.target.value)}
-                        className='h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300'
+                        className='h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300'
                     />
                     <label htmlFor='prefer-female' className='ml-2 block text-sm text-gray-900'>
                         Female
@@ -162,7 +172,7 @@ const SignUpForm = () => {
                         value='both'
                         checked={genderPreference === "both"}
                         onChange={(e) => setGenderPreference(e.target.value)}
-                        className='h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300'
+                        className='h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300'
                     />
                     <label htmlFor='prefer-both' className='ml-2 block text-sm text-gray-900'>
                         Both
