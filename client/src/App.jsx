@@ -3,9 +3,11 @@ import HomePage from "./pages/HomePage.jsx"
 import AuthPage from "./pages/AuthPage.jsx"
 import ProfilePage from "./pages/ProfilePage.jsx"
 import ChatPage from "./pages/ChatPage.jsx"
+
 import { useAuthStore } from "./store/useAuthStore.js"
 import { useEffect } from "react"
 import { Toaster } from "react-hot-toast"
+import EventPage from "./pages/EventPage.jsx"
 
 function App() {
 
@@ -24,6 +26,7 @@ function App() {
         <Route path="/auth" element={!authUser ? <AuthPage /> :<Navigate to = {"/"}/> } />
         <Route path="/profile" element={authUser ? <ProfilePage /> :<Navigate to = {"/auth"}/>} />
         <Route path="/chat/:id" element={authUser ? <ChatPage /> :<Navigate to = {"/auth"}/>} />
+        <Route path="/event" element={authUser ? <EventPage /> :<Navigate to = {"/auth"}/>} />
       </Routes>
 
       <Toaster/>

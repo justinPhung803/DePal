@@ -90,4 +90,23 @@ export const useMatchStore = create((set) => ({
             console.log(error);
         }
     },
+
+    getEvents: async () => {
+        try {
+            const res = await axiosInstance.get("/events");
+            set({ events: res.data.events });
+        } catch (error) {
+            toast.error("Failed to fetch events");
+        }
+    },
+
+    addEvent: async (eventData) => {
+        try {
+            const res = await axiosInstance.post("/events", eventData);
+            set((state) => ({ events: [...state.events, res.data.event] }));
+            toast.success("Event added successfully!");
+        } catch (error) {
+            toast.error("Failed to add event");
+        }
+    }
 }))
