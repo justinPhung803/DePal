@@ -6,6 +6,7 @@ import { useAuthStore } from "./useAuthStore";
 
 export const useMessageStore = create((set) => ({
 	messages: [],
+	unreadMessages: {},
 	loading: true,
 
 	sendMessage: async (receiverId, content) => {
@@ -28,7 +29,10 @@ export const useMessageStore = create((set) => ({
 		try {
 			set({ loading: true });
 			const res = await axiosInstance.get(`/messages/conversation/${userId}`);
-			set({ messages: res.data.messages });
+			set((state) => ({
+                messages: res.data.messages,
+                unreadMessages: { ...state.unreadMessages, [userId]: 0 }, // Reset unread count when viewing
+            }));
 		} catch (error) {
 			console.log(error);
 			set({ messages: [] });
@@ -40,9 +44,26 @@ export const useMessageStore = create((set) => ({
 	subscribeToMessages: () => {
 		const socket = getSocket();
 		socket.on("newMessage", ({ message }) => {
-			set((state) => ({ messages: [...state.messages, message] }));
+			set((state) => { 
+				const { sender } = message;
+                const unreadCount = state.unreadMessages?.[sender] || 0;
+
+                return {
+                    messages: [...state.messages, message],
+                    unreadMessages: {
+                        ...state.unreadMessages,
+                        [sender]: unreadCount + 1, 
+                    },
+				}
+			});
 		});
 	},
+
+	markAsRead: (userId) => {
+        set((state) => ({
+            unreadMessages: { ...state.unreadMessages, [userId]: 0 }, 
+        }));
+    },
 
 	unsubscribeFromMessages: () => {
 		const socket = getSocket();

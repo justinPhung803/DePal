@@ -10,6 +10,7 @@ const SwipeArea = () => {
     
         if (dir === "right") swipeRight(user);
         else if (dir === "left") swipeLeft(user);
+        
     };
   return (
     <div className='relative w-full max-w-sm h-[28rem]'>

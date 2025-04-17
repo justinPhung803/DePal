@@ -41,7 +41,9 @@ const ChatPage = () => {
 						src={match.image || "/avatar.png"}
 						className='w-12 h-12 object-cover rounded-full mr-3 border-2 border-yellow-300'
 					/>
-					<h2 className='text-xl font-semibold text-gray-800'>{match.name}</h2>
+					<Link to={`/friendprofile/${match._id}`} className='text-xl font-semibold text-gray-800 hover:underline'>
+    {match.name}
+</Link>
 				</div>
 
 				<div className='flex-grow overflow-y-auto mb-4 bg-white rounded-lg shadow p-4'>

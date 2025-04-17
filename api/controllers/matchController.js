@@ -88,7 +88,7 @@ export const swipeLeft = async (req, res) => {
 
 export const getMatches = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).populate("matches", "name image");
+        const user = await User.findById(req.user.id).populate("matches", "name image age bio gender genderPreference");
 
         res.status(200).json({
             success: true,
@@ -130,6 +130,85 @@ export const getUserProfiles = async (req, res) => {
 
         res.status(500).json({
             success:false,
+            message: "Internal server error",
+        });
+    }
+};
+
+// 🆕 Unmatch a User
+export const unmatchUser = async (req, res) => {
+    try {
+        const { userIdToUnmatch } = req.params;
+        const currentUser = await User.findById(req.user.id);
+        const userToUnmatch = await User.findById(userIdToUnmatch);
+
+        if (!userToUnmatch) {
+            return res.status(400).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        // Remove each other from matches array
+        currentUser.matches = currentUser.matches.filter(id => id.toString() !== userIdToUnmatch);
+        userToUnmatch.matches = userToUnmatch.matches.filter(id => id.toString() !== currentUser._id.toString());
+
+        // 🆕 Remove from likes and dislikes to reappear as potential match
+        currentUser.likes = currentUser.likes.filter(id => id.toString() !== userIdToUnmatch);
+        currentUser.dislikes = currentUser.dislikes.filter(id => id.toString() !== userIdToUnmatch);
+
+        userToUnmatch.likes = userToUnmatch.likes.filter(id => id.toString() !== currentUser._id.toString());
+        userToUnmatch.dislikes = userToUnmatch.dislikes.filter(id => id.toString() !== currentUser._id.toString());
+
+        await Promise.all([currentUser.save(), userToUnmatch.save()]);
+
+        res.status(200).json({
+            success: true,
+            message: "User unmatched successfully",
+        });
+    } catch (error) {
+        console.log("Error in unmatchUser: ", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+
+// 🆕 Block a User
+export const blockUser = async (req, res) => {
+    try {
+        const { userIdToBlock } = req.params;
+        const currentUser = await User.findById(req.user.id);
+        const userToBlock = await User.findById(userIdToBlock);
+
+        if (!userToBlock) {
+            return res.status(400).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        // Remove from matches
+        currentUser.matches = currentUser.matches.filter(id => id.toString() !== userIdToBlock);
+        userToBlock.matches = userToBlock.matches.filter(id => id.toString() !== currentUser._id.toString());
+
+        // Add to dislikes (prevent rematching)
+        if (!currentUser.dislikes.includes(userIdToBlock)) {
+            currentUser.dislikes.push(userIdToBlock);
+        }
+
+        await Promise.all([currentUser.save(), userToBlock.save()]);
+
+        res.status(200).json({
+            success: true,
+            message: "User blocked successfully",
+        });
+    } catch (error) {
+        console.log("Error in blockUser: ", error);
+        res.status(500).json({
+            success: false,
             message: "Internal server error",
         });
     }
