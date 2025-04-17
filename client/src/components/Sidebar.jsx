@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import {Handshake, Loader, MessageCircle, X} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMatchStore } from "../store/useMatchStore";
+import { useMessageStore } from "../store/useMessageStore";
 
 const SideBar = () => {
 const [isOpen, setIsOpen] = useState(false);
 const toggleSidebar = () => setIsOpen(!isOpen);
 
 const {getMyMatches, matches, isLoadingMyMatches}=useMatchStore();
+const { unreadMessages, markAsRead } = useMessageStore();
 
 useEffect(() => {
     getMyMatches();
@@ -35,12 +37,21 @@ useEffect(() => {
             <div className="flex-grow overflow-y-auto p-4 z-10 relative">
                 {isLoadingMyMatches ? <LoadingState/> : matches.length === 0 ? <NoMatchesFound/> : (
                     matches.map(match => (
-                        <Link key={match._id} to={`/chat/${match._id}`}>
-                            <div className="flex items-center mb-4 cursor-pointer hover:bg-yellow-50 p-2 rounded-lg transition-colors duration-300">
-                                <img src={match.image || "/avatar.png"} alt="User avatar"
-                                className="size-12 object-cover rounded-full mr-3 border-2 border-yellow-300"
-                                />
-                                <h3 className="font-semibold text-gray-800">{match.name}</h3>
+                        <Link key={match._id} to={`/chat/${match._id}`} onClick={() => markAsRead(match._id)}>
+                            <div className="flex items-center justify-between mb-4 cursor-pointer hover:bg-yellow-50 p-2 rounded-lg transition-colors duration-300">
+                                <div className="flex items-center">
+                                    <img 
+                                        src={match.image || "/avatar.png"} 
+                                        alt="User avatar"
+                                        className="size-12 object-cover rounded-full mr-3 border-2 border-yellow-300"
+                                    />
+                                    <h3 className="font-semibold text-gray-800">{match.name}</h3>
+                                </div>
+                                {(unreadMessages[match._id] || 0) > 0 && (
+                                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        {unreadMessages[match._id] || 0}
+                                    </span>
+                                )}
                             </div>
                         </Link>
                     ))

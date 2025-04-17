@@ -3,7 +3,7 @@ import { axiosInstance } from "../lib/axios"
 import toast from "react-hot-toast"
 import { getSocket } from "../socket/socket.client"
 
-export const useMatchStore = create((set) => ({
+export const useMatchStore = create((set, get) => ({
     matches:[],
     isLoadingMyMatches: false,
     isLoadingUserProfiles: false,
@@ -108,5 +108,46 @@ export const useMatchStore = create((set) => ({
         } catch (error) {
             toast.error("Failed to add event");
         }
-    }
+    },
+
+    unmatchUser: async (userId) => {
+        console.log("Unmatching user:", userId);
+        try {
+            const response = await axiosInstance.delete(`/matches/unmatch/${userId}`);
+            console.log("Unmatch Response:", response.data);
+        
+            // Remove from matches
+            set((state) => ({
+                matches: state.matches.filter((match) => match._id !== userId),
+            }));
+        
+            // Corrected function name from fetchUserProfiles to getUserProfiles
+            const { getUserProfiles } = get(); 
+            await getUserProfiles();
+        
+            toast.success("User unmatched successfully");
+        } catch (error) {
+            console.error("Error unmatching user:", error);
+            toast.error("Failed to unmatch user");
+        }
+    },    
+    
+    
+    
+    
+    blockUser: async (userId) => {
+        console.log("Blocking user:", userId);
+        try {
+            const response = await axiosInstance.post(`/api/matches/block/${userId}`);
+            console.log("Block Response:", response.data);
+    
+            set((state) => ({
+                matches: state.matches.filter((match) => match._id !== userId),
+            }));
+            toast.success("User blocked successfully");
+        } catch (error) {
+            console.error("Error blocking user:", error);
+            toast.error("Failed to block user");
+        }
+    },
 }))
