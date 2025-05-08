@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import Sidebar from "../components/SideBar.jsx"
+import Sidebar from "../components/Sidebar.jsx"
 import { useMatchStore } from "../store/useMatchStore.js"
 import Header from "../components/Header.jsx";
 import { Smile } from "lucide-react";
