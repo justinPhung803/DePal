@@ -34,7 +34,7 @@ app.use(
 	})
 );
 
-app.use("/events", eventRoutes);
+app.use("/api/events", eventRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/matches", matchRoutes);

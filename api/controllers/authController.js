@@ -67,8 +67,9 @@ export const signup = async (req, res) => {
         });
 
         res.status(201).json({
-            succes: true,
-            user: newUser
+            success: true,
+            user: newUser,
+            token
         })
 
     }   catch(error) {
@@ -107,6 +108,7 @@ export const login = async (req, res) => {
         res.status(200).json({
             success: true,
             user,
+            token
         })
     } catch (error) {
         console.log("Error in login controller:", error);

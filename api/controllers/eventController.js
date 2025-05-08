@@ -1,72 +1,186 @@
 import Event from "../models/Event.js";
 import User from "../models/User.js";
+import Message from "../models/Message.js";
 import { getConnectedUsers, getIO } from "../socket/socket.server.js";
 
-// ✅ Create an event
-export const createEvent = async (req, res) => {
-    try {
-        const { title, description, startTime, endTime, location } = req.body;
-        const creator = req.user.id; // Logged-in user
+const sendNotificationToCreator = async (creatorId, sender, eventTitle, action) => {
+    const content = `${sender.name} has ${action} your event "${eventTitle}".`;
 
-        // Get matched users
-        const user = await User.findById(creator);
-        const attendees = user.matches;
+    const newMessage = await Message.create({
+        sender: sender._id,
+        receiver: creatorId,
+        content,
+    });
 
-        const event = await Event.create({ creator, title, description, startTime, endTime, location, attendees });
+    const io = getIO();
+    const connectedUsers = getConnectedUsers();
+    const creatorSocketId = connectedUsers.get(creatorId.toString());
 
-        // Notify matched users via WebSockets
-        const connectedUsers = getConnectedUsers();
-        const io = getIO();
-        attendees.forEach((attendeeId) => {
-            const socketId = connectedUsers.get(attendeeId.toString());
-            if (socketId) {
-                io.to(socketId).emit("newEvent", event);
-            }
-        });
-
-        res.status(201).json({ success: true, event });
-    } catch (error) {
-        console.error("Error in createEvent:", error);
-        res.status(500).json({ success: false, message: "Internal server error" });
+    if (creatorSocketId) {
+        io.to(creatorSocketId).emit("newMessage", { message: newMessage });
     }
 };
 
-// ✅ Get all events for a user (including matched users' events)
+export const createEvent = async (req, res) => {
+  try {
+    const { title, description, startTime, endTime, location } = req.body;
+    const creator = req.user.id;
+
+    const newEvent = await Event.create({
+      creator,
+      title,
+      description,
+      startTime,
+      endTime,
+      location,
+    });
+
+    res.status(201).json({ success: true, event: newEvent });
+  } catch (error) {
+    console.error("Error creating event:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 export const getEvents = async (req, res) => {
     try {
-        const userId = req.user.id;
+      const currentUserId = req.user._id.toString();
+      if (!currentUserId) {
+        return res.status(401).json({ success: false, message: "User not authenticated" });
+      }
+      console.log("Fetching events for user:", req.user);
 
-        // Find events created by user or their matched users
-        const events = await Event.find({
-            $or: [{ creator: userId }, { attendees: userId }]
-        }).populate("creator", "name image");
-
-        res.status(200).json({ success: true, events });
+      const user = await User.findById(currentUserId);
+  
+      const matchIds = user.matches.map(id => id.toString());
+  
+      const events = await Event.find({
+        $or: [
+          { creator: currentUserId },
+          { creator: { $in: matchIds } }
+        ]
+      }).populate("creator", "name").populate("attendees", "name _id");
+  
+      res.status(200).json({ success: true, events });
     } catch (error) {
-        console.error("Error in getEvents:", error);
-        res.status(500).json({ success: false, message: "Internal server error" });
+      console.error("Error getting events:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
     }
-};
+  };
 
-// ✅ Delete an event
-export const deleteEvent = async (req, res) => {
+  export const joinEvent = async (req, res) => {
     try {
-        const { eventId } = req.params;
-        const event = await Event.findById(eventId);
-
-        if (!event) {
-            return res.status(404).json({ success: false, message: "Event not found" });
+      const eventId = req.params.eventId;
+      const userId = req.user._id;
+      const userName = req.user.name;
+  
+      const event = await Event.findById(eventId).populate("creator");
+      if (!event) {
+        return res.status(404).json({ success: false, message: "Event not found" });
+      }
+  
+      const alreadyJoined = event.attendees.some(id => id.toString() === userId.toString());
+      if (!alreadyJoined) {
+        event.attendees.push(userId);
+        await event.save();
+  
+        // ✅ Send message to the creator
+        const newMessage = await Message.create({
+          sender: userId,
+          receiver: event.creator._id,
+          content: `${userName} has joined your event: ${event.title}`,
+        });
+  
+        const io = getIO();
+        const connectedUsers = getConnectedUsers();
+        const creatorSocketId = connectedUsers.get(event.creator._id.toString());
+        if (creatorSocketId) {
+          console.log("📢 Emitting socket to creator:", creatorSocketId);
+          io.to(creatorSocketId).emit("newMessage", { message: newMessage });
         }
+        const updatedEvent = await Event.findById(eventId)
+            .populate("creator", "name")
+            .populate("attendees", "name _id");
 
-        // Only the creator can delete it
-        if (event.creator.toString() !== req.user.id) {
-            return res.status(403).json({ success: false, message: "Unauthorized" });
-        }
-
-        await event.deleteOne();
-        res.status(200).json({ success: true, message: "Event deleted" });
+            const uniqueUserIds = new Set([
+                updatedEvent.creator._id.toString(),
+                ...updatedEvent.attendees.map(a => a._id.toString())
+              ]);
+              
+              for (const userId of uniqueUserIds) {
+                const socketId = connectedUsers.get(userId);
+                if (socketId) {
+                  console.log(`📢 Sending eventUpdated to user: ${userId}`);
+                  io.to(socketId).emit("eventUpdated", {
+                    eventId: updatedEvent._id,
+                    attendees: updatedEvent.attendees,
+                  });
+                }
+              }
+      }
+  
+      res.status(200).json({ success: true, message: "Joined event", event });
     } catch (error) {
-        console.error("Error in deleteEvent:", error);
-        res.status(500).json({ success: false, message: "Internal server error" });
+      console.error("Error joining event:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
     }
-};
+  };
+  
+  export const leaveEvent = async (req, res) => {
+    try {
+      const eventId = req.params.eventId;
+      const userId = req.user._id;
+      const userName = req.user.name;
+  
+      const event = await Event.findById(eventId).populate("creator");
+      if (!event) {
+        return res.status(404).json({ success: false, message: "Event not found" });
+      }
+  
+      const beforeCount = event.attendees.length;
+      event.attendees = event.attendees.filter(attendeeId => attendeeId.toString() !== userId.toString());
+      if (event.attendees.length < beforeCount) {
+        await event.save();
+  
+        // ✅ Send message to the creator
+        const newMessage = await Message.create({
+          sender: userId,
+          receiver: event.creator._id,
+          content: `${userName} has left your event: ${event.title}`,
+        });
+  
+        const io = getIO();
+        const connectedUsers = getConnectedUsers();
+        const creatorSocketId = connectedUsers.get(event.creator._id.toString());
+        if (creatorSocketId) {
+          console.log("📢 Emitting socket to creator:", creatorSocketId);
+          io.to(creatorSocketId).emit("newMessage", { message: newMessage });
+          
+        }
+        const updatedEvent = await Event.findById(eventId)
+            .populate("creator", "name")
+            .populate("attendees", "name _id");
+
+        const uniqueUserIds = new Set([
+            updatedEvent.creator._id.toString(),
+            ...updatedEvent.attendees.map(a => a._id.toString())
+        ]);
+        
+        for (const userId of uniqueUserIds) {
+            const socketId = connectedUsers.get(userId);
+            if (socketId) {
+                console.log(`📢 Sending eventUpdated to user: ${userId}`);
+                io.to(socketId).emit("eventUpdated", {
+                    eventId: updatedEvent._id,
+                    attendees: updatedEvent.attendees,
+                });
+            }
+        }
+      }
+  
+      res.status(200).json({ success: true, message: "Left event", event });
+    } catch (error) {
+      console.error("Error leaving event:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+    }
+  };

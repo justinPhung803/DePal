@@ -9,6 +9,7 @@ import { useAuthStore } from "./store/useAuthStore.js"
 import { useEffect } from "react"
 import { Toaster } from "react-hot-toast"
 import EventPage from "./pages/EventPage.jsx"
+import { initializeSocket } from "./socket/socket.client.js";
 
 
 function App() {
@@ -18,6 +19,13 @@ function App() {
   useEffect(() => {
     checkAuth()
   },[checkAuth]);
+
+  useEffect(() => {
+    if (authUser && authUser._id) {
+      console.log("✅ Initializing socket for:", authUser._id);
+      initializeSocket(authUser._id);
+    }
+  }, [authUser]);
 
   if(checkingAuth) return null;
 

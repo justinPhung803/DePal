@@ -7,7 +7,7 @@ const eventSchema = new mongoose.Schema({
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
   location: { type: String },
-  attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Matched users
+  attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", default: [] }],
 }, { timestamps: true });
 
 export default mongoose.model("Event", eventSchema);
